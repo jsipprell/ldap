@@ -38,7 +38,8 @@ type LDAPConnection struct {
 	AbandonMessageOnReadTimeout bool
 
 	TlsConfig *tls.Config
-
+	TransportWrapper   Transporter
+	transport          Transport
 	conn               net.Conn
 	chanResults        map[uint64]chan *ber.Packet
 	lockChanResults    sync.RWMutex
@@ -66,6 +67,13 @@ func (l *LDAPConnection) Connect() error {
 
 		if err != nil {
 			return err
+		}
+
+		if l.TransportWrapper != nil {
+			if wrapper,ok := l.TransportWrapper.WrapConnection(c); ok {
+				l.transport = wrapper
+				c = wrapper
+			}
 		}
 
 		if l.IsSSL {
